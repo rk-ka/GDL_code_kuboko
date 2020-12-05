@@ -45,21 +45,21 @@ class Autoencoder():
         self.n_layers_encoder = len(encoder_conv_filters)
         self.n_layers_decoder = len(decoder_conv_t_filters)
 
-        self._build()
+        self._build()  # Autoencoderクラスを呼び出すと_build()関数を呼び出す
 
-    def _build(self):
+    def _build(self):  # _ が最初につくと、関数を内部のみで使用することを明示している
 
         ### THE ENCODER
         encoder_input = Input(shape=self.input_dim, name='encoder_input')
 
         x = encoder_input
 
-        for i in range(self.n_layers_encoder):
+        for i in range(self.n_layers_encoder):  # conv層の数　conv層を1層づつループで回す
             conv_layer = Conv2D(
-                filters = self.encoder_conv_filters[i]
-                , kernel_size = self.encoder_conv_kernel_size[i]
-                , strides = self.encoder_conv_strides[i]
-                , padding = 'same'
+                filters = self.encoder_conv_filters[i]  # conv層の出力フィルタ数
+                , kernel_size = self.encoder_conv_kernel_size[i]  # conv層のカーネル(フィルタ)サイズ 例3▶3×3
+                , strides = self.encoder_conv_strides[i]  # ストライド数
+                , padding = 'same'  # パッディング▶sameかつストライド1の場合、input_shapeとoutput_shapeが同じ
                 , name = 'encoder_conv_' + str(i)
                 )
 
@@ -67,13 +67,13 @@ class Autoencoder():
 
             x = LeakyReLU()(x)
 
-            if self.use_batch_norm:
+            if self.use_batch_norm:  # default:False
                 x = BatchNormalization()(x)
 
-            if self.use_dropout:
+            if self.use_dropout:  # default:False
                 x = Dropout(rate = 0.25)(x)
 
-        shape_before_flattening = K.int_shape(x)[1:]
+        shape_before_flattening = K.int_shape(x)[1:]  # decoderでもとのサイズに戻す際に使用する
 
         x = Flatten()(x)
         encoder_output= Dense(self.z_dim, name='encoder_output')(x)
@@ -84,29 +84,29 @@ class Autoencoder():
         ### THE DECODER
         decoder_input = Input(shape=(self.z_dim,), name='decoder_input')
 
-        x = Dense(np.prod(shape_before_flattening))(decoder_input)
-        x = Reshape(shape_before_flattening)(x)
+        x = Dense(np.prod(shape_before_flattening))(decoder_input)  #np.prod((7,7,64))▶np.array(7*7*64=3136)
+        x = Reshape(shape_before_flattening)(x)  # 3次元にもどす
 
-        for i in range(self.n_layers_decoder):
+        for i in range(self.n_layers_decoder):  # decoderの 転置畳み込み層 の数だけループ
             conv_t_layer = Conv2DTranspose(
-                filters = self.decoder_conv_t_filters[i]
-                , kernel_size = self.decoder_conv_t_kernel_size[i]
-                , strides = self.decoder_conv_t_strides[i]
-                , padding = 'same'
+                filters = self.decoder_conv_t_filters[i]  # 出力フィルタ数
+                , kernel_size = self.decoder_conv_t_kernel_size[i]  # カーネル（フィルタ）サイズ
+                , strides = self.decoder_conv_t_strides[i]  # ストライド
+                , padding = 'same'  # パッディング▶sameかつストライド1の場合、input_shapeとoutput_shapeが同じ
                 , name = 'decoder_conv_t_' + str(i)
                 )
 
             x = conv_t_layer(x)
 
-            if i < self.n_layers_decoder - 1:
+            if i < self.n_layers_decoder - 1:  # 最後の層以外
                 x = LeakyReLU()(x)
                 
-                if self.use_batch_norm:
+                if self.use_batch_norm:  # default:False
                     x = BatchNormalization()(x)
                 
-                if self.use_dropout:
+                if self.use_dropout:  # default:False
                     x = Dropout(rate = 0.25)(x)
-            else:
+            else:  # 最後の層
                 x = Activation('sigmoid')(x)
 
         decoder_output = x
@@ -114,8 +114,8 @@ class Autoencoder():
         self.decoder = Model(decoder_input, decoder_output)
 
         ### THE FULL AUTOENCODER
-        model_input = encoder_input
-        model_output = self.decoder(encoder_output)
+        model_input = encoder_input  # input: encoderへの入力
+        model_output = self.decoder(encoder_output)  # output: encoderの出力をdecoderに通したもの
 
         self.model = Model(model_input, model_output)
 
